@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\VariantRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use JetBrains\PhpStorm\ArrayShape;
 
 #[ORM\Entity(repositoryClass: VariantRepository::class)]
 class Variant
@@ -62,5 +63,18 @@ class Variant
         $this->price = $price;
 
         return $this;
+    }
+
+    #[ArrayShape([
+        'id' => "int|null", 'variantName' => "null|string", 'product' => "\App\Entity\Product|null", 'price' => "null|string"
+    ])]
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->getId(),
+            'variantName' => $this->getVariantName(),
+            'product' => $this->getProduct(),
+            'price' => $this->getPrice(),
+        ];
     }
 }

@@ -6,6 +6,7 @@ use App\Repository\ProductRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JetBrains\PhpStorm\ArrayShape;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 class Product
@@ -18,7 +19,7 @@ class Product
     #[ORM\Column(length: 40)]
     private ?string $productName = null;
 
-    #[ORM\OneToMany(mappedBy: 'product', targetEntity: Variant::class)]
+    #[ORM\OneToMany(mappedBy: 'product', targetEntity: Variant::class, cascade: ['persist', 'remove'])]
     private Collection $variants;
 
     public function __construct()
@@ -71,5 +72,14 @@ class Product
         }
 
         return $this;
+    }
+
+    #[ArrayShape(['id' => "int|null", 'productName' => "null|string"])]
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->getId(),
+            'productName' => $this->getProductName(),
+        ];
     }
 }

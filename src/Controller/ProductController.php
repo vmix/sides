@@ -4,9 +4,9 @@ namespace App\Controller;
 
 use App\Entity\Product;
 use App\Repository\ProductRepository;
-use App\Repository\VariantRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -14,44 +14,111 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/api')]
 class ProductController extends AbstractController
 {
-    public function __construct(
-        private readonly EntityManagerInterface $entityManager,
-        private readonly ProductRepository $productRepository,
-        private readonly VariantRepository $variantRepository,
-    ) {
-    }
-
-    #[Route('/products', name: 'app_product', methods: 'GET')]
-    public function index(): Response
+    #[Route('/products', name: 'products', methods: 'GET')]
+    public function index(ProductRepository $productRepository): JsonResponse
     {
-        $products = $this->productRepository->findAll();
-        $variants = $this->variantRepository->findAll();
+//        $products = $this->productRepository->findAll();
+        $products = $productRepository->getProducts();
+
         $result = [
-            'code' => Response::HTTP_OK,
-            'status' => true,
+            'code' => 200,
             'message' => 'ok, list',
-            'products' => $products->getVariant($variants)
+            'products' => $products
         ];
 
         return $this->json($result, Response::HTTP_OK);
     }
 
-    #[Route('/products', name: 'app_product_add', methods: 'POST')]
-    public function add(Request $request)
+    #[Route('/products', name: 'add_product', methods: 'POST')]
+    public function add(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
         $product = new Product();
 
-        $product->setProductName($request->request->get('product_name'));
+        $product->setProductName($request->request->get('productName'));
 
-        $this->entityManager->persist($product);
-        $this->entityManager->flush();
+        $entityManager->persist($product);
+        $entityManager->flush();
 
         $result = [
-            'code' => Response::HTTP_CREATED,
-            'message' => 'ok',
-            'status' => true
+            'code' => 201,
+            'message' => 'ok, product is created',
         ];
 
         return $this->json($result, Response::HTTP_CREATED);
+    }
+
+    #[Route('/products/{id}', name: 'update_product', methods: 'PUT')]
+    public function update(
+        int $id,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        ProductRepository $productRepository
+    ): JsonResponse
+    {
+        try {
+            $product = $productRepository->find($id);
+
+            if (!$product){
+                $data = [
+                    'code' => 404,
+                    'message' => "product not found",
+                ];
+                return $this->json($data, Response::HTTP_NOT_FOUND);
+            }
+            $request = $this->transformJsonBody($request);
+
+            $product->setProductName($request->request->get('productName'));
+            $entityManager->flush();
+
+            $data = [
+                'code' => 200,
+                'message' => "product updated successfully",
+            ];
+
+            return $this->json($data, Response::HTTP_OK);
+        } catch (\Exception $e) {
+            $data = [
+                'code' => 422,
+                'message' => "Data no valid",
+            ];
+
+            return $this->json($data, Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+    }
+
+    #[Route('/products/{id}', name: 'delete_product', methods: 'DELETE')]
+    public function delete($id, ProductRepository $productRepository): JsonResponse
+    {
+        $product = $productRepository->find($id);
+
+        if (!$product){
+            $data = [
+                'code' => 404,
+                'message' => "product not found",
+            ];
+
+            return $this->json($data, Response::HTTP_NOT_FOUND);
+        }
+
+        $productRepository->remove($product, true);
+
+        return $this->json([
+            'code' => 200,
+            'message' => 'ok, product is deleted'
+        ], Response::HTTP_OK);
+    }
+
+    protected function transformJsonBody(Request $request): Request
+    {
+        $data = json_decode($request->getContent(), true);
+
+        if ($data === null) {
+            return $request;
+        }
+
+        $request->request->replace($data);
+
+        return $request;
     }
 }

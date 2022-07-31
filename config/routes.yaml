@@ -2,5 +2,19 @@ controllers:
     resource: ../src/Controller/
     type: attribute
 
+register:
+    path: /register
+    controller: App\Controller\AuthController::register
+    methods:
+        - GET
+        - POST
+
 api_login_check:
     path: /api/login_check
+    controller: App\Controller\AuthController::getTokenUser
+    methods:
+        - POST
+
+#test:
+#    path: /api/test
+#    controller: App\Controller\ApiController::test

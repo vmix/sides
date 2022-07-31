@@ -3,8 +3,15 @@
 namespace App\Repository;
 
 use App\Entity\Product;
+use App\Entity\Variant;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\NoResultException;
+use Doctrine\ORM\Query\Expr\Join;
+use Doctrine\ORM\Query\Parameter;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\VarExporter\Internal\Hydrator;
 
 /**
  * @extends ServiceEntityRepository<Product>
@@ -63,4 +70,24 @@ class ProductRepository extends ServiceEntityRepository
 //            ->getOneOrNullResult()
 //        ;
 //    }
+
+    public function getProducts()
+    {
+        $qb = $this->getEntityManager()->createQueryBuilder();
+
+        $qb->select('prd.productName as product, vrt.variantName as option, vrt.price')
+            ->from(Product::class, "prd")
+            ->leftJoin(Variant::class, 'vrt', Join::WITH, "prd.id = :productId")
+            ->setParameters(new ArrayCollection([
+                new Parameter('productId', 'vrt.productId'),
+            ]))
+            ->orderBy('prd.productName', 'ASC')
+        ;
+
+
+        $query = $qb->getQuery();
+
+        return $query->getResult();
+    }
+
 }
